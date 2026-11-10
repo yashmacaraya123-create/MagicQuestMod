@@ -12,6 +12,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Unpack project zip (if needed)
+        run: |
+          if [ -f build.gradle ]; then
+            echo "Project files found at repo root, no unzip needed."
+            exit 0
+          fi
+          zip=$(find . -maxdepth 1 -name '*.zip' | head -1)
+          if [ -z "$zip" ]; then
+            echo "No build.gradle and no zip file found in the repo root."
+            exit 1
+          fi
+          echo "Unpacking $zip"
+          mkdir -p /tmp/proj
+          unzip -q -o "$zip" -d /tmp/proj
+          gradle_file=$(find /tmp/proj -name build.gradle -not -path '*/__MACOSX/*' | head -1)
+          if [ -z "$gradle_file" ]; then
+            echo "build.gradle not found inside the zip."
+            exit 1
+          fi
+          root=$(dirname "$gradle_file")
+          echo "Project root inside zip: $root"
+          cp -a "$root"/. .
+          ls -la
+
       - name: Set up Node (asset generators)
         uses: actions/setup-node@v4
         with:
